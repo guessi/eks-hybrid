@@ -132,8 +132,9 @@ func (c *create) Run(log *zap.Logger, opts *cli.GlobalOptions) error {
 		SSM:     ssmClient,
 		Logger:  logger,
 
-		NodeadmURLs: *urls,
-		PublicKey:   infra.NodesPublicSSHKey,
+		NodeadmURLs:        *urls,
+		PublicKey:          infra.NodesPublicSSHKey,
+		InstanceProfileARN: infra.Credentials.InstanceProfileARN,
 
 		K8sClientConfig: clientConfig,
 	}
@@ -187,20 +188,23 @@ func (c *create) Run(log *zap.Logger, opts *cli.GlobalOptions) error {
 
 	logger.Info("Connecting to the node serial console...")
 	serial, err := node.SerialConsole(ctx, peeredInstance.ID)
+	var pausableOutput *e2e.SwitchWriter
 	if err != nil {
-		return fmt.Errorf("preparing EC2 for serial connection: %w", err)
-	}
-	defer serial.Close()
-
-	pausableOutput := e2e.NewSwitchWriter(os.Stdout)
-	pausableOutput.Pause()
-	if err := serial.Copy(pausableOutput); err != nil {
-		return fmt.Errorf("connecting to EC2 serial console: %w", err)
-	}
-
-	logger.Info("Waiting for the node to initialize...")
-	if err := pausableOutput.Resume(); err != nil {
-		return fmt.Errorf("resuming output: %w", err)
+		logger.Info("Serial console not available. Continuing without serial output...", "error", err)
+	} else {
+		pausableOutput = e2e.NewSwitchWriter(os.Stdout)
+		pausableOutput.Pause()
+		if err := serial.Copy(pausableOutput); err != nil {
+			logger.Info("Failed to connect to serial console. Continuing without serial output...", "error", err)
+			serial.Close()
+			serial = nil
+		} else {
+			logger.Info("Waiting for the node to initialize...")
+			if err := pausableOutput.Resume(); err != nil {
+				serial.Close()
+				return fmt.Errorf("resuming output: %w", err)
+			}
+		}
 	}
 
 	verifyNode := kubernetes.VerifyNode{
@@ -211,10 +215,23 @@ func (c *create) Run(log *zap.Logger, opts *cli.GlobalOptions) error {
 	}
 	vn, err := verifyNode.WaitForNodeReady(ctx)
 	if err != nil {
+		if serial != nil {
+			serial.Close()
+		}
 		return fmt.Errorf("waiting for node to be ready: %w", err)
 	}
-	pausableOutput.Pause()
-	fmt.Println() // newline after pausing the serial output to ensure a clean log after
+	if pausableOutput != nil {
+		pausableOutput.Pause()
+		fmt.Println() // newline after pausing the serial output to ensure a clean log after
+	}
+	// Close the serial console as soon as the node is ready to unblock the background
+	// io.Copy goroutines — otherwise the PTY login prompt keeps the session alive.
+	if serial != nil {
+		if err := serial.Close(); err != nil {
+			logger.Info("Error closing serial console", "error", err)
+		}
+		serial = nil
+	}
 	logger.Info("Node is ready", "nodeName", vn.Name)
 
 	network := peered.Network{

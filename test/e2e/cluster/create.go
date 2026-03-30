@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
+	awsinternal "github.com/aws/eks-hybrid/internal/aws"
 	"github.com/aws/eks-hybrid/test/e2e"
 	"github.com/aws/eks-hybrid/test/e2e/addon"
 	"github.com/aws/eks-hybrid/test/e2e/cni"
@@ -242,11 +243,14 @@ func SetTestResourcesDefaults(testResources TestResources) TestResources {
 	}
 
 	if testResources.DNSSuffix == "" {
-		testResources.DNSSuffix = "amazonaws.com"
+		// Auto-detect DNS suffix from region
+		partition := awsinternal.GetPartitionFromRegionFallback(testResources.ClusterRegion)
+		testResources.DNSSuffix = awsinternal.GetPartitionDNSSuffix(partition)
 	}
 
 	if testResources.EcrAccount == "" {
-		testResources.EcrAccount = constants.EcrAccountId
+		// Auto-detect ECR account based on region
+		testResources.EcrAccount = getEcrAccountForRegion(testResources.ClusterRegion)
 	}
 	if testResources.ClusterNetwork == (NetworkConfig{}) {
 		testResources.ClusterNetwork = NetworkConfig{
@@ -264,6 +268,17 @@ func SetTestResourcesDefaults(testResources TestResources) TestResources {
 	}
 
 	return testResources
+}
+
+// getEcrAccountForRegion returns the appropriate ECR account ID for the given region
+// For China regions, it uses the China-specific ECR account
+func getEcrAccountForRegion(region string) string {
+	// China-specific ECR account for test images
+	if awsinternal.GetPartitionFromRegionFallback(region) == "aws-cn" {
+		return constants.ChinaEcrAccountId
+	}
+	// Default to standard test ECR account for all other regions
+	return constants.EcrAccountId
 }
 
 func skipPodIdentityTest() bool {

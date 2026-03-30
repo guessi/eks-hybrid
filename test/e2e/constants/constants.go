@@ -8,6 +8,7 @@ const (
 	OSArchTagKey                    = "OS-Arch"
 	TestRolePathPrefix              = "/NodeadmE2E/"
 	EcrAccountId                    = "381492195191"
+	ChinaEcrAccountId               = "858475954877"
 	LogCollectorBundleFileName      = "bundle.tar.gz"
 	JumpboxLogBundleFileName        = "jumpbox-bundle.tar.gz"
 	TestCredentialsStackNamePrefix  = "EKSHybridCI"
