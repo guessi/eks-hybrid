@@ -410,7 +410,7 @@ export function createNodeadmTestsCreationCleanupPolicies(
         conditions: requestTagCondition,
       }),
       new iam.PolicyStatement({
-        actions: ['logs:DescribeLogGroups'],
+        actions: ['logs:DescribeLogGroups', 'logs:DescribeLogStreams'],
         resources: ['*'],
         effect: iam.Effect.ALLOW,
       }),
