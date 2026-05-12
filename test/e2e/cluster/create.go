@@ -250,7 +250,7 @@ func SetTestResourcesDefaults(testResources TestResources) TestResources {
 
 	if testResources.EcrAccount == "" {
 		// Auto-detect ECR account based on region
-		testResources.EcrAccount = getEcrAccountForRegion(testResources.ClusterRegion)
+		testResources.EcrAccount = e2e.GetEcrAccountForRegion(testResources.ClusterRegion)
 	}
 	if testResources.ClusterNetwork == (NetworkConfig{}) {
 		testResources.ClusterNetwork = NetworkConfig{
@@ -268,17 +268,6 @@ func SetTestResourcesDefaults(testResources TestResources) TestResources {
 	}
 
 	return testResources
-}
-
-// getEcrAccountForRegion returns the appropriate ECR account ID for the given region
-// For China regions, it uses the China-specific ECR account
-func getEcrAccountForRegion(region string) string {
-	// China-specific ECR account for test images
-	if awsinternal.GetPartitionFromRegionFallback(region) == "aws-cn" {
-		return constants.ChinaEcrAccountId
-	}
-	// Default to standard test ECR account for all other regions
-	return constants.EcrAccountId
 }
 
 func skipPodIdentityTest() bool {

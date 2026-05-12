@@ -12,7 +12,7 @@ FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 ARG TARGETARCH
 
 RUN dnf -y update && \
-    dnf -y install systemd containerd jq git-core python3 tar procps zip openssl openssl-devel && \
+    dnf -y install systemd containerd jq git-core python3 python3-pip tar procps zip openssl openssl-devel && \
     dnf clean all
 
 RUN curl -OL https://github.com/mikefarah/yq/releases/download/v4.45.3/yq_linux_${TARGETARCH}.tar.gz && \
@@ -27,10 +27,6 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "aws
     unzip awscliv2.zip && \
     ./aws/install && \
     rm -rf aws awscliv2.zip
-
-RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
-    python3 get-pip.py && \
-    rm get-pip.py
 
 RUN pip install --user 'moto[server]'
 

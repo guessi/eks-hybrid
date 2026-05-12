@@ -6,6 +6,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	awsinternal "github.com/aws/eks-hybrid/internal/aws"
 	"github.com/aws/eks-hybrid/test/e2e/constants"
 )
 
@@ -42,12 +43,25 @@ func ReadConfig(configPath string) (*TestConfig, error) {
 	}
 
 	if config.DNSSuffix == "" {
-		config.DNSSuffix = "amazonaws.com"
+		// Auto-detect DNS suffix from region
+		partition := awsinternal.GetPartitionFromRegionFallback(config.ClusterRegion)
+		config.DNSSuffix = awsinternal.GetPartitionDNSSuffix(partition)
 	}
 
 	if config.EcrAccount == "" {
-		config.EcrAccount = constants.EcrAccountId
+		// Auto-detect ECR account based on region
+		config.EcrAccount = GetEcrAccountForRegion(config.ClusterRegion)
 	}
 
 	return config, nil
+}
+
+// GetEcrAccountForRegion returns the appropriate ECR account ID for the given region.
+// For China regions (aws-cn partition), it uses the China-specific ECR account (constants.ChinaEcrAccountId).
+// For all other regions, it returns the standard test ECR account (constants.EcrAccountId).
+func GetEcrAccountForRegion(region string) string {
+	if awsinternal.GetPartitionFromRegionFallback(region) == "aws-cn" {
+		return constants.ChinaEcrAccountId
+	}
+	return constants.EcrAccountId
 }

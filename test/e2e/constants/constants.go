@@ -3,12 +3,18 @@ package constants
 import "time"
 
 const (
-	CreationTimeTagKey              = "CreationTime"
-	TestClusterTagKey               = "Nodeadm-E2E-Tests-Cluster"
-	OSArchTagKey                    = "OS-Arch"
-	TestRolePathPrefix              = "/NodeadmE2E/"
-	EcrAccountId                    = "381492195191"
-	ChinaEcrAccountId               = "858475954877"
+	CreationTimeTagKey = "CreationTime"
+	TestClusterTagKey  = "Nodeadm-E2E-Tests-Cluster"
+	OSArchTagKey       = "OS-Arch"
+	TestRolePathPrefix = "/NodeadmE2E/"
+	EcrAccountId       = "381492195191"
+	// ChinaEcrAccountId is the ECR account ID used in AWS China (aws-cn) regions for test images.
+	ChinaEcrAccountId = "858475954877"
+	// ChinaCiliumEcrAccountId is the ECR account ID used in AWS China (aws-cn) regions for Cilium images.
+	// This account mirrors Cilium images for use in China regions.
+	ChinaCiliumEcrAccountId = "907723705730"
+	// CiliumPublicEcrRegistry is the public ECR registry used for Cilium images in standard regions.
+	CiliumPublicEcrRegistry         = "public.ecr.aws/eks"
 	LogCollectorBundleFileName      = "bundle.tar.gz"
 	JumpboxLogBundleFileName        = "jumpbox-bundle.tar.gz"
 	TestCredentialsStackNamePrefix  = "EKSHybridCI"
