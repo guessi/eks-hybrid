@@ -5,14 +5,21 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"html/template"
 	"strings"
+	"text/template"
 
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/dynamic"
 
+	"github.com/aws/eks-hybrid/test/e2e/constants"
 	"github.com/aws/eks-hybrid/test/e2e/kubernetes"
 )
+
+//go:embed testdata/cilium/VERSION
+var ciliumVersionFile string
+
+// ciliumVersion is the Cilium version used for all regions, read from testdata/cilium/VERSION.
+var ciliumVersion = strings.TrimSpace(ciliumVersionFile)
 
 // For kubernetes versions less than 1.30, the cilium template uses
 // annonations to add AppArmor configuration
@@ -51,19 +58,20 @@ func isChinaRegion(region string) bool {
 	return strings.HasPrefix(region, "cn-")
 }
 
-// getCiliumImageConfig returns the appropriate image repository and tag based on region
+// getCiliumImageConfig returns the appropriate image repository and tag based on region.
+// For China regions, it uses the China ECR registry (constants.ChinaCiliumEcrAccountId).
+// The same Cilium version (read from testdata/cilium/VERSION) is used for all regions.
 func getCiliumImageConfig(region string) (ciliumRepo, operatorRepo, tag string) {
 	if isChinaRegion(region) {
-		// Use China ECR registry with version 1.19.1-0
-		baseRepo := "907723705730.dkr.ecr." + region + ".amazonaws.com.cn"
+		baseRepo := constants.ChinaCiliumEcrAccountId + ".dkr.ecr." + region + ".amazonaws.com.cn"
 		return baseRepo + "/cilium/cilium",
 			baseRepo + "/cilium/operator-generic",
-			"v1.19.1-0"
+			ciliumVersion
 	}
-	// Use public ECR for all other regions with version 1.18.5-0
-	return "public.ecr.aws/eks/cilium/cilium",
-		"public.ecr.aws/eks/cilium/operator-generic",
-		"v1.18.5-0"
+	// Use public ECR for all other regions
+	return constants.CiliumPublicEcrRegistry + "/cilium/cilium",
+		constants.CiliumPublicEcrRegistry + "/cilium/operator-generic",
+		ciliumVersion
 }
 
 // Deploy creates or updates the Cilium reosurces.

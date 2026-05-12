@@ -72,4 +72,10 @@ EOF
 helm template cilium oci://public.ecr.aws/eks/cilium/cilium --version ${CILIUM_VERSION:1} --kube-version 1.29 --namespace kube-system --values ./cilium-values.yaml --set ipam.operator.clusterPoolIPv4PodCIDRList='\{\{.PodCIDR\}\}' >  ./cilium-template-129.yaml
 helm template cilium oci://public.ecr.aws/eks/cilium/cilium --version ${CILIUM_VERSION:1} --kube-version 1.30 --namespace kube-system --values ./cilium-values.yaml --set ipam.operator.clusterPoolIPv4PodCIDRList='\{\{.PodCIDR\}\}' >  ./cilium-template-130.yaml
 
+# Replace hard-coded image references with template placeholders so that cilium.go can
+# inject the correct registry at deploy time (e.g. public.ecr.aws/eks for standard regions,
+# or a China ECR mirror for aws-cn regions).
+sed -i "s|public.ecr.aws/eks/cilium/operator-generic:${CILIUM_VERSION}|{{.OperatorImage}}|g" ./cilium-template-129.yaml ./cilium-template-130.yaml
+sed -i "s|public.ecr.aws/eks/cilium/cilium:${CILIUM_VERSION}|{{.CiliumImage}}|g" ./cilium-template-129.yaml ./cilium-template-130.yaml
+
 echo "$CILIUM_VERSION" > VERSION
